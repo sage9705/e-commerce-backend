@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const Product = require('../models/product');
 
@@ -7,15 +8,15 @@ dotenv.config();
 
 const users = [
     {
-        name: 'Admin User',
-        email: 'admin@example.com',
-        password: 'password123',
+        name: process.env.ADMIN_NAME,
+        email: process.env.ADMIN_EMAIL,
+        password: process.env.ADMIN_PASSWORD,
         role: 'admin'
     },
     {
-        name: 'Customer User',
-        email: 'customer@example.com',
-        password: 'password123',
+        name: process.env.CUSTOMER_NAME,
+        email: process.env.CUSTOMER_EMAIL,
+        password: process.env.CUSTOMER_PASSWORD,
         role: 'customer'
     }
 ];
@@ -49,7 +50,14 @@ const seedDB = async () => {
         await User.deleteMany({});
         await Product.deleteMany({});
 
-        const createdUsers = await User.insertMany(users);
+        // Hash passwords before inserting users
+        const hashedUsers = await Promise.all(users.map(async user => {
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(user.password, salt);
+            return user;
+        }));
+
+        const createdUsers = await User.insertMany(hashedUsers);
         console.log('Users added:', createdUsers);
 
         const createdProducts = await Product.insertMany(products);
