@@ -9,6 +9,10 @@ const connectDB = require('./config/db');
 dotenv.config();
 connectDB();
 
+// Import models to ensure they are registered
+require('./models/user');
+require('./models/product');
+
 const app = express();
 
 app.use(morgan('dev'));
