@@ -11,3 +11,13 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Verify transporter configuration
+transporter.verify(function (error, success) {
+    if (error) {
+      console.log('Email service error:', error);
+    } else {
+      console.log('Email server is ready to send messages');
+    }
+  });
+  
+ 
