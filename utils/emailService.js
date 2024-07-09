@@ -20,4 +20,28 @@ transporter.verify(function (error, success) {
     }
   });
   
- 
+ // Function to send verification email
+ exports.sendVerificationEmail = async (email, token) => {
+    try {
+      const mailOptions = {
+        from: `"E-commerce Site" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'Verify Email',
+        html: `
+          <h1>Email Verification</h1>
+          <p>Thank you for registering. Please verify email by clicking on the following link:</p>
+          <a href="${process.env.BASE_URL}/api/users/verify/${token}">Verify Email</a>
+          <p>If you did not request this, please ignore this email.</p>
+        `
+      };
+  
+      const info = await transporter.sendMail(mailOptions);
+      console.log('Verification email sent: %s', info.messageId);
+      return info;
+    } catch (error) {
+      console.error('Error sending verification email:', error);
+      throw error;
+    }
+  };
+  
+  
