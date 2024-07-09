@@ -1,5 +1,3 @@
-markdown
-Copy code
 # E-commerce Backend
 
 This project is a modular, feature-rich e-commerce backend built using Node.js, Express.js, and MongoDB Atlas. It includes user authentication, product management, order processing, and initial database population.
