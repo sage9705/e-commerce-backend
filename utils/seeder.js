@@ -8,15 +8,15 @@ dotenv.config();
 
 const users = [
     {
-        name: process.env.ADMIN_NAME,
-        email: process.env.ADMIN_EMAIL,
-        password: process.env.ADMIN_PASSWORD,
+        name: 'Admin User',
+        email: 'admin@example.com',
+        password: 'adminpassword',
         role: 'admin'
     },
     {
-        name: process.env.CUSTOMER_NAME,
-        email: process.env.CUSTOMER_EMAIL,
-        password: process.env.CUSTOMER_PASSWORD,
+        name: 'Customer User',
+        email: 'customer@example.com',
+        password: 'customerpassword',
         role: 'customer'
     }
 ];
@@ -48,7 +48,7 @@ const seedDB = async () => {
         await User.deleteMany({});
         await Product.deleteMany({});
 
-        // Hash passwords before inserting users
+       
         const hashedUsers = await Promise.all(users.map(async user => {
             const salt = await bcrypt.genSalt(10);
             user.password = await bcrypt.hash(user.password, salt);
