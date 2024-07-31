@@ -12,6 +12,7 @@ connectDB();
 // Import models to ensure they are registered
 require('./models/user');
 require('./models/product');
+require('./models/order');
 
 const app = express();
 
