@@ -17,12 +17,12 @@ This project is a modular, feature-rich e-commerce backend built using Node.js, 
 
 ## Features
 
-- User authentication (registration, login)
+- User authentication (registration, login, email verification)
 - Role-based authorization (admin, customer)
 - Product management (CRUD operations)
 - Order processing (create, view orders)
 - Initial database population with default users and products
-
+- Email service for user verification and notifications
 
 ## Installation
 
@@ -44,18 +44,15 @@ This project is a modular, feature-rich e-commerce backend built using Node.js, 
     Create a `.env` file in the root directory and add your configuration:
 
     ```plaintext
-    MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/ecommerce?retryWrites=true&w=majority
+    MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.hflrlq3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
     JWT_SECRET=your_jwt_secret
+    EMAIL_HOST=smtp.example.com
+    EMAIL_PORT=587
+    EMAIL_SECURE=false
     EMAIL_USER=your_email@example.com
     EMAIL_PASS=your_email_password
-
-    ADMIN_NAME=Admin User
-    ADMIN_EMAIL=admin@example.com
-    ADMIN_PASSWORD=password123
-
-    CUSTOMER_NAME=Customer User
-    CUSTOMER_EMAIL=customer@example.com
-    CUSTOMER_PASSWORD=password123
+    BASE_URL=http://localhost:5000
+    NODE_ENV=development
 
     PORT=3356 # Optional, defaults to 5000 if not provided
     ```
@@ -74,13 +71,14 @@ This project is a modular, feature-rich e-commerce backend built using Node.js, 
 
 ## Usage
 
-The server will start on the port specified in your environment variables (default is 5000). You can use tools like Postman or Insomnia to interact with the API endpoints.
+The server will start on the port specified in your environment variables (default is 5000). You can use tools like Postman, HTTPie, or Insomnia to interact with the API endpoints.
 
 ## API Endpoints
 
 ### User Routes
 
 - `POST /api/users/register` - Register a new user
+- `GET /api/users/verify/:token` - Verify user email
 - `POST /api/users/login` - Login a user
 - `GET /api/users/profile` - Get the profile of the logged-in user (requires token)
 
@@ -102,16 +100,12 @@ The server will start on the port specified in your environment variables (defau
 
 The following environment variables are required:
 
-- `MONGODB_URI` - MongoDB connection string
+- `MONGODB_URI` - MongoDB Atlas connection string
 - `JWT_SECRET` - Secret key for JWT authentication
+- `EMAIL_HOST` - SMTP host for sending emails
+- `EMAIL_PORT` - SMTP port for sending emails
+- `EMAIL_SECURE` - Boolean indicating whether to use a secure connection for email
 - `EMAIL_USER` - Email address for sending notifications
 - `EMAIL_PASS` - Password for the email address
-
-Additionally, to seed the initial data, the following are required:
-
-- `ADMIN_NAME` - Name of the admin user
-- `ADMIN_EMAIL` - Email of the admin user
-- `ADMIN_PASSWORD` - Password for the admin user
-- `CUSTOMER_NAME` - Name of the customer user
-- `CUSTOMER_EMAIL` - Email of the customer user
-- `CUSTOMER_PASSWORD` - Password for the customer user
+- `BASE_URL` - Base URL of your application
+- `NODE_ENV` - Environment (development/production)
