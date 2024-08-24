@@ -7,8 +7,9 @@ const {
   getProductById,
   updateProduct,
   deleteProduct,
+  addReview,
 } = require("../controllers/ProductController");
-const { verifyAdmin } = require("../middlewares/auth");
+const { verifyToken, verifyAdmin } = require("../middlewares/auth");
 const validate = require("../middlewares/validate");
 
 const productValidationRules = [
@@ -29,6 +30,16 @@ const productValidationRules = [
     .withMessage("Category is required"),
 ];
 
+const reviewValidationRules = [
+  body("rating")
+    .isInt({ min: 1, max: 5 })
+    .withMessage("Rating must be between 1 and 5"),
+  body("comment")
+    .trim()
+    .isLength({ min: 1 })
+    .withMessage("Comment is required"),
+];
+
 router.post("/", verifyAdmin, productValidationRules, validate, createProduct);
 router.get("/", getAllProducts);
 router.get("/:id", getProductById);
@@ -40,5 +51,12 @@ router.put(
   updateProduct
 );
 router.delete("/:id", verifyAdmin, deleteProduct);
+router.post(
+  "/:id/reviews",
+  verifyToken,
+  reviewValidationRules,
+  validate,
+  addReview
+);
 
 module.exports = router;
