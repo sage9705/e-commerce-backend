@@ -15,6 +15,7 @@ class AppError extends Error {
 }
 
 exports.registerUser = async (req, res, next) => {
+  req.logger.info(`POST /api/users/register`);
   const { name, email, password } = req.body;
   try {
     let user = await User.findOne({ email });
@@ -40,11 +41,13 @@ exports.registerUser = async (req, res, next) => {
         "User registered. Please check your email to verify your account.",
     });
   } catch (err) {
+    req.logger.error(`Error in POST /api/users/register`, { error: err });
     next(new AppError("Error registering user", 500));
   }
 };
 
 exports.verifyEmail = async (req, res, next) => {
+  req.logger.info(`GET /api/users/verify/${req.params.token}`);
   try {
     const user = await User.findOne({
       verificationToken: req.params.token,
@@ -62,11 +65,15 @@ exports.verifyEmail = async (req, res, next) => {
 
     res.status(200).json({ message: "Email verified successfully" });
   } catch (err) {
+    req.logger.error(`Error in GET /api/users/verify/${req.params.token}`, {
+      error: err,
+    });
     next(new AppError("Error verifying email", 500));
   }
 };
 
 exports.loginUser = async (req, res, next) => {
+  req.logger.info(`POST /api/users/login`);
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
@@ -85,18 +92,55 @@ exports.loginUser = async (req, res, next) => {
       return next(new AppError("Invalid credentials", 400));
     }
 
-    const payload = { id: user.id };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "1d",
+    const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "15m",
     });
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
 
-    res.status(200).json({ token });
+    res.status(200).json({ accessToken, refreshToken });
   } catch (err) {
+    req.logger.error(`Error in POST /api/users/login`, { error: err });
     next(new AppError("Error logging in", 500));
   }
 };
 
+exports.refreshToken = async (req, res, next) => {
+  req.logger.info(`POST /api/users/refresh-token`);
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return next(new AppError("Refresh token is required", 400));
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return next(new AppError("User not found", 404));
+    }
+
+    const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "15m",
+    });
+    const newRefreshToken = jwt.sign(
+      { id: user._id },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({ accessToken, refreshToken: newRefreshToken });
+  } catch (err) {
+    req.logger.error(`Error in POST /api/users/refresh-token`, { error: err });
+    next(new AppError("Error refreshing token", 500));
+  }
+};
+
 exports.getUserProfile = async (req, res, next) => {
+  req.logger.info(`GET /api/users/profile`);
   try {
     const user = await User.findById(req.user).select("-password");
     if (!user) {
@@ -104,6 +148,7 @@ exports.getUserProfile = async (req, res, next) => {
     }
     res.status(200).json(user);
   } catch (err) {
+    req.logger.error(`Error in GET /api/users/profile`, { error: err });
     next(new AppError("Error fetching user profile", 500));
   }
 };
