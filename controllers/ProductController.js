@@ -1,6 +1,5 @@
 const Product = require("../models/product");
 
-// Custom error class for better error handling
 class AppError extends Error {
   constructor(message, statusCode) {
     super(message);
@@ -13,6 +12,7 @@ class AppError extends Error {
 }
 
 exports.createProduct = async (req, res, next) => {
+  req.logger.info(`POST /api/products`);
   try {
     const { name, description, price, stock, category } = req.body;
     const newProduct = new Product({
@@ -25,15 +25,14 @@ exports.createProduct = async (req, res, next) => {
     await newProduct.save();
     res.status(201).json(newProduct);
   } catch (err) {
+    req.logger.error(`Error in POST /api/products`, { error: err });
     next(new AppError("Error creating product", 500));
   }
 };
 
 exports.getAllProducts = async (req, res, next) => {
+  req.logger.info(`GET /api/products`);
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
-    const startIndex = (page - 1) * limit;
     const cacheKey = `products_${JSON.stringify(req.query)}`;
     const cachedData = req.cache.get(cacheKey);
 
@@ -41,9 +40,12 @@ exports.getAllProducts = async (req, res, next) => {
       return res.status(200).json(cachedData);
     }
 
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const startIndex = (page - 1) * limit;
+
     let query = Product.find();
 
-    // Search functionality
     if (req.query.search) {
       query = query.or([
         { name: { $regex: req.query.search, $options: "i" } },
@@ -51,7 +53,6 @@ exports.getAllProducts = async (req, res, next) => {
       ]);
     }
 
-    // Filtering
     if (req.query.category) {
       query = query.where("category").equals(req.query.category);
     }
@@ -65,25 +66,24 @@ exports.getAllProducts = async (req, res, next) => {
     const total = await Product.countDocuments(query);
     const products = await query.skip(startIndex).limit(limit);
 
-    req.cache.set(cacheKey, {
+    const responseData = {
       products,
       currentPage: page,
       totalPages: Math.ceil(total / limit),
       totalItems: total,
-    });
+    };
 
-    res.status(200).json({
-      products,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit),
-      totalItems: total,
-    });
+    req.cache.set(cacheKey, responseData);
+
+    res.status(200).json(responseData);
   } catch (err) {
+    req.logger.error(`Error in GET /api/products`, { error: err });
     next(new AppError("Error fetching products", 500));
   }
 };
 
 exports.getProductById = async (req, res, next) => {
+  req.logger.info(`GET /api/products/${req.params.id}`);
   try {
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -91,11 +91,15 @@ exports.getProductById = async (req, res, next) => {
     }
     res.status(200).json(product);
   } catch (err) {
+    req.logger.error(`Error in GET /api/products/${req.params.id}`, {
+      error: err,
+    });
     next(new AppError("Error fetching product", 500));
   }
 };
 
 exports.updateProduct = async (req, res, next) => {
+  req.logger.info(`PUT /api/products/${req.params.id}`);
   try {
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
@@ -107,11 +111,15 @@ exports.updateProduct = async (req, res, next) => {
     }
     res.status(200).json(updatedProduct);
   } catch (err) {
+    req.logger.error(`Error in PUT /api/products/${req.params.id}`, {
+      error: err,
+    });
     next(new AppError("Error updating product", 500));
   }
 };
 
 exports.deleteProduct = async (req, res, next) => {
+  req.logger.info(`DELETE /api/products/${req.params.id}`);
   try {
     const deletedProduct = await Product.findByIdAndDelete(req.params.id);
     if (!deletedProduct) {
@@ -119,11 +127,15 @@ exports.deleteProduct = async (req, res, next) => {
     }
     res.status(200).json({ message: "Product deleted" });
   } catch (err) {
+    req.logger.error(`Error in DELETE /api/products/${req.params.id}`, {
+      error: err,
+    });
     next(new AppError("Error deleting product", 500));
   }
 };
 
 exports.addReview = async (req, res, next) => {
+  req.logger.info(`POST /api/products/${req.params.id}/reviews`);
   try {
     const { rating, comment } = req.body;
     const product = await Product.findById(req.params.id);
@@ -147,6 +159,9 @@ exports.addReview = async (req, res, next) => {
     await product.save();
     res.status(201).json({ message: "Review added" });
   } catch (err) {
+    req.logger.error(`Error in POST /api/products/${req.params.id}/reviews`, {
+      error: err,
+    });
     next(new AppError("Error adding review", 500));
   }
 };
