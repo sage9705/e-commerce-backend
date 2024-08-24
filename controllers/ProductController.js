@@ -34,6 +34,12 @@ exports.getAllProducts = async (req, res, next) => {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const startIndex = (page - 1) * limit;
+    const cacheKey = `products_${JSON.stringify(req.query)}`;
+    const cachedData = req.cache.get(cacheKey);
+
+    if (cachedData) {
+      return res.status(200).json(cachedData);
+    }
 
     let query = Product.find();
 
@@ -58,6 +64,13 @@ exports.getAllProducts = async (req, res, next) => {
 
     const total = await Product.countDocuments(query);
     const products = await query.skip(startIndex).limit(limit);
+
+    req.cache.set(cacheKey, {
+      products,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+    });
 
     res.status(200).json({
       products,
