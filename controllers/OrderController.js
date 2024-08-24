@@ -1,31 +1,60 @@
-const Order = require('../models/order');
+const Order = require("../models/order");
 
-exports.createOrder = async (req, res) => {
-    const { products, total } = req.body;
-    try {
-        const newOrder = new Order({ user: req.user, products, total });
-        await newOrder.save();
-        res.status(201).json(newOrder);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+class AppError extends Error {
+  constructor(message, statusCode) {
+    super(message);
+    this.statusCode = statusCode;
+    this.status = `${statusCode}`.startsWith("4") ? "fail" : "error";
+    this.isOperational = true;
+
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+exports.createOrder = async (req, res, next) => {
+  const { products, total } = req.body;
+  try {
+    const newOrder = new Order({ user: req.user, products, total });
+    await newOrder.save();
+    res.status(201).json(newOrder);
+  } catch (err) {
+    next(new AppError("Error creating order", 500));
+  }
 };
 
-exports.getAllOrders = async (req, res) => {
-    try {
-        const orders = await Order.find({ user: req.user }).populate('products.product');
-        res.status(200).json(orders);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+exports.getAllOrders = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const startIndex = (page - 1) * limit;
+
+    const total = await Order.countDocuments({ user: req.user });
+    const orders = await Order.find({ user: req.user })
+      .populate("products.product")
+      .skip(startIndex)
+      .limit(limit);
+
+    res.status(200).json({
+      orders,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+    });
+  } catch (err) {
+    next(new AppError("Error fetching orders", 500));
+  }
 };
 
-exports.getOrderById = async (req, res) => {
-    try {
-        const order = await Order.findById(req.params.id).populate('products.product');
-        if (!order) return res.status(404).json({ message: 'Order not found' });
-        res.status(200).json(order);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+exports.getOrderById = async (req, res, next) => {
+  try {
+    const order = await Order.findById(req.params.id).populate(
+      "products.product"
+    );
+    if (!order) {
+      return next(new AppError("Order not found", 404));
     }
+    res.status(200).json(order);
+  } catch (err) {
+    next(new AppError("Error fetching order", 500));
+  }
 };
