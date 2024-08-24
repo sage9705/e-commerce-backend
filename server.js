@@ -51,5 +51,13 @@ app.use((err, req, res, next) => {
   });
 });
 
+const NodeCache = require("node-cache");
+const cache = new NodeCache({ stdTTL: 300 }); // Cache for 5 minutes
+
+app.use((req, res, next) => {
+  req.cache = cache;
+  next();
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
